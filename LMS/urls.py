@@ -14,6 +14,7 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
 from django.contrib import admin
 from django.urls import path, include
 from . import views, user_login
@@ -21,33 +22,36 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path('admin', admin.site.urls),
-
-    path('base', views.BASE, name='base'),
-    path('404', views.PAGE_NOT_FOUND, name='404'),
-    
-    
-    path('', views.HOME, name='home'),
-    path('course', views.SINGLE_COURSE, name='single_course'),
-    path('course/filter-data', views.filter_data, name='filter-data'),
-    path('course/<slug:slug>', views.COURSE_DETAILS, name='course_details'),
-    path('search', views.SEARCH_COURSE, name='search_course'),
-    path('my-course', views.MY_COURSE, name='my_course'),
-    path('course/watch_course/<slug:slug>', views.WATCH_COURSE, name='watch_course'),
-    
-    
-    path('contact', views.CONTACT_US, name='contact_us'),
-    path('about', views.ABOUT_US, name='about_us'),
-    
-    path('accounts', include('django.contrib.auth.urls')),
-    path('accounts/register', user_login.REGISTER, name='register'),
-    path('accounts/doLogin', user_login.DO_LOGIN, name='doLogin'),
-    path('accounts/doLogout', user_login.DO_LOGOUT, name='doLogout'),
-    path('accounts/profile', user_login.PROFILE, name='profile'),
-    path('accounts/profile/update', user_login.PROFILE_UPDATE, name='profile_update'),
-    
-    path('checkout/<slug:slug>', views.CHECKOUT, name='checkout'),
-    path('verify_payment', views.VERIFY_PAYMENT, name='verify_payment'),
-    
-
-]+ static(settings.MEDIA_URL, document_root = settings.MEDIA_ROOT)
+    path("admin", admin.site.urls),
+    path("base", views.BASE, name="base"),
+    path("404", views.PAGE_NOT_FOUND, name="404"),
+    path("", views.HOME, name="home"),
+    path("course", views.SINGLE_COURSE, name="single_course"),
+    path("course/filter-data", views.filter_data, name="filter-data"),
+    path("course/<slug:slug>", views.COURSE_DETAILS, name="course_details"),
+    path("search", views.SEARCH_COURSE, name="search_course"),
+    path("my-course", views.MY_COURSE, name="my_course"),
+    path("course/watch_course/<slug:slug>", views.WATCH_COURSE, name="watch_course"),
+    path("contact", views.CONTACT_US, name="contact_us"),
+    path("about", views.ABOUT_US, name="about_us"),
+    path("accounts", include("django.contrib.auth.urls")),
+    path("accounts/register", user_login.REGISTER, name="register"),
+    path("accounts/doLogin", user_login.DO_LOGIN, name="doLogin"),
+    path("accounts/doLogout/", user_login.DO_LOGOUT, name="doLogout"),
+    path("accounts/profile", user_login.PROFILE, name="profile"),
+    path("accounts/profile/update", user_login.PROFILE_UPDATE, name="profile_update"),
+    path("checkout/<slug:slug>", views.CHECKOUT, name="checkout"),
+    path("verify_payment", views.VERIFY_PAYMENT, name="verify_payment"),
+    path(
+        "update_video_watch_status/",
+        views.update_video_watch_status,
+        name="update_video_watch_status",
+    ),
+    path(
+        "check_video_watch_status/",
+        views.check_video_watch_status,
+        name="check_video_watch_status",
+    ),
+    path("quiz/<int:video_id>/", views.quiz_detail, name="quiz_detail"),
+    path("quiz/<int:quiz_id>/submit/", views.submit_quiz, name="submit_quiz"),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

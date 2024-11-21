@@ -110,10 +110,15 @@
                             </a>
                         </li>
                         <li class="dropdown-item">
-                            <a href="{% url 'logout' %}" class="dropdown-link">
-                                Logout
-                            </a>
+                            <a href="javascript:void(0);" class="dropdown-link"
+                                onclick="document.getElementById('logout-form').submit();">Logout</a>
                         </li>
+
+                        <!-- Hidden logout form -->
+                        <form id="logout-form" action="{% url 'logout' %}" method="POST" style="display:none;">
+                            {% csrf_token %}
+                        </form>
+
                     </ul>
                 </li>
                 {% elif user.is_authenticated %}

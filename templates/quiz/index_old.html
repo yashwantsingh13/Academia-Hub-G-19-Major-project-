@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4fbfd;
+            color: #012641;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            position: relative;
+        }
+
+        #quiz-container {
+            width: 80%;
+            max-width: 800px;
+            padding: 20px;
+            background-color: #ffffff;
+            border: 2px solid #60b3d1;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: #012641;
+            text-align: center;
+        }
+
+        #timer {
+            font-size: 18px;
+            text-align: center;
+            margin-bottom: 10px;
+            color: #60b3d1;
+        }
+
+        #question {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .option-button {
+            background-color: #eaf7fa;
+            color: #012641;
+            padding: 15px;
+            border: 1px solid #60b3d1;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        .option-button:hover {
+            background-color: #60b3d1;
+            color: #ffffff;
+        }
+
+        .selected {
+            background-color: #60b3d1;
+            color: #ffffff;
+        }
+
+        #next-button,
+        #submit-button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #60b3d1;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+
+        #next-button:hover,
+        #submit-button:hover {
+            background-color: #012641;
+        }
+
+        #question-list {
+            margin-top: 20px;
+            padding: 10px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        #question-list h2 {
+            font-size: 18px;
+            color: #012641;
+            margin-bottom: 10px;
+        }
+
+        #question-links {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            /* 5 columns */
+            gap: 10px;
+            /* Space between items */
+            margin-top: 10px;
+        }
+
+        .question-link {
+            color: #60b3d1;
+            text-decoration: none;
+            padding: 8px;
+            text-align: center;
+            border: 1px solid #60b3d1;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+            background-color: #eaf7fa;
+        }
+
+        .question-link:hover {
+            background-color: #60b3d1;
+            color: #ffffff;
+        }
+
+        /* Camera feed styles */
+        #camera-feed {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 2px solid #60b3d1;
+            object-fit: cover;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="quiz-container">
+        <h1>Quiz</h1>
+        <div id="timer">Time Remaining: <span id="time">20</span> seconds</div>
+        <div id="question"></div>
+        <div class="options-container" id="options"></div>
+        <button id="next-button" style="display: none;">Next Question</button>
+        <button id="submit-button" style="display: none;">Submit Test</button>
+        <div id="question-list">
+            <h2>Quiz Questions</h2>
+            <div id="question-links"></div>
+        </div>
+        <!-- Camera Feed Video Element -->
+        <video id="camera-feed" autoplay muted></video>
+        <!-- Audio Element (hidden) -->
+        <audio id="background-audio" src="audio-file.mp3" autoplay></audio>
+    </div>
+
+    <script>
+        // Start camera when page loads
+        window.onload = function () {
+            const videoElement = document.getElementById('camera-feed');
+            const audioElement = document.getElementById('background-audio');
+            audioElement.style.display = 'none'; // Hide the audio element
+
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(stream => {
+                        videoElement.srcObject = stream;
+                    })
+                    .catch(error => {
+                        console.error('Error accessing the camera:', error);
+                    });
+            } else {
+                console.error('Camera access is not supported by this browser.');
+            }
+
+            // Redirect to switch.html and try to close the window if tab is inactive
+            document.addEventListener('visibilitychange', function () {
+                if (document.hidden) {
+                    // Save the quiz results before leaving
+                    downloadCSV();
+                    // Redirect to warning page
+                    window.location.href = 'switch.html';
+                    // Attempt to close the window
+                    setTimeout(() => {
+                        window.close();
+                    }, 500); // Delay to allow redirect before attempting to close
+                }
+            });
+        };
+
+        // Quiz functionality
+        let questions = [];
+        let selectedQuestions = [];
+        let currentQuestionIndex = 0;
+        let timeRemaining = 20;
+        let timer;
+        let quizResults = [];
+        const quizId = `quiz_${Date.now()}`;
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function startTimer() {
+            clearInterval(timer);
+            timeRemaining = 20;
+            document.getElementById('time').innerText = timeRemaining;
+            timer = setInterval(() => {
+                timeRemaining--;
+                document.getElementById('time').innerText = timeRemaining;
+                if (timeRemaining <= 0) {
+                    clearInterval(timer);
+                    document.getElementById('next-button').click();
+                }
+            }, 1000);
+        }
+
+        fetch('questions.json')
+            .then(response => response.json())
+            .then(data => {
+                shuffle(data);
+                selectedQuestions = data.slice(0, 10);
+                questions = selectedQuestions;
+                showQuestion();
+                generateQuestionLinks();
+            })
+            .catch(error => console.error('Error loading questions:', error));
+
+        function showQuestion() {
+            if (currentQuestionIndex >= selectedQuestions.length) {
+                downloadCSV();
+                return;
+            }
+
+            const question = selectedQuestions[currentQuestionIndex];
+            document.getElementById('question').innerText = question.question;
+            const optionsContainer = document.getElementById('options');
+            optionsContainer.innerHTML = '';
+
+            question.options.forEach(option => {
+                const button = document.createElement('button');
+                button.classList.add('option-button');
+                button.innerText = option;
+                button.onclick = () => selectAnswer(button, option);
+                optionsContainer.appendChild(button);
+            });
+
+            if (currentQuestionIndex === selectedQuestions.length - 1) {
+                document.getElementById('next-button').style.display = 'none';
+                document.getElementById('submit-button').style.display = 'block';
+            } else {
+                document.getElementById('next-button').style.display = 'block';
+                document.getElementById('submit-button').style.display = 'none';
+            }
+
+            startTimer();
+        }
+
+        function selectAnswer(selectedButton, selectedOption) {
+            const buttons = document.querySelectorAll('.option-button');
+            buttons.forEach(button => button.classList.remove('selected'));
+            selectedButton.classList.add('selected');
+
+            const question = selectedQuestions[currentQuestionIndex];
+            quizResults.push({
+                quizId,
+                question: question.question,
+                selectedOption,
+                correctAnswer: question.answer,
+                isCorrect: selectedOption === question.answer
+            });
+
+            document.getElementById('next-button').style.display = 'block';
+        }
+
+        document.getElementById('next-button').onclick = nextQuestion;
+        document.getElementById('submit-button').onclick = downloadCSV;
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            showQuestion();
+        }
+
+        function generateQuestionLinks() {
+            const questionLinksContainer = document.getElementById('question-links');
+            questionLinksContainer.innerHTML = '';
+
+            selectedQuestions.forEach((question, index) => {
+                const link = document.createElement('a');
+                link.href = '#';
+                link.classList.add('question-link');
+                link.innerText = `Question ${index + 1}`;
+                link.onclick = () => jumpToQuestion(index);
+                questionLinksContainer.appendChild(link);
+            });
+        }
+
+        function jumpToQuestion(index) {
+            currentQuestionIndex = index;
+            showQuestion();
+        }
+
+        function downloadCSV() {
+            let csvContent = 'data:text/csv;charset=utf-8,';
+            csvContent += 'QuizID,Question,Selected Option,Correct Answer,Is Correct\n';
+
+            quizResults.forEach(result => {
+                csvContent += `${result.quizId},"${result.question}","${result.selectedOption}","${result.correctAnswer}",${result.isCorrect}\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', `quiz_results_${quizId}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+
+</html>

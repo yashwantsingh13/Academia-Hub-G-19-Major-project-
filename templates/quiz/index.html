@@ -1,0 +1,274 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Quiz: {{ quiz.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .quiz-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        position: relative;
+    }
+
+    .quiz-title {
+        text-align: center;
+        font-size: 2rem;
+        margin-bottom: 20px;
+    }
+
+    /* Styling the camera video feed */
+    #video-container {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 4px solid #007bff;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        background-color: #f0f0f0;
+    }
+
+    #videoElement {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .question {
+        margin-bottom: 20px;
+    }
+
+    .form-check {
+        margin-top: 10px;
+    }
+
+    .button-container {
+        text-align: center;
+        margin-top: 20px;
+    }
+
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.4);
+    }
+
+    .modal-content {
+        background-color: white;
+        padding: 20px;
+        margin: 15% auto;
+        width: 50%;
+        border-radius: 10px;
+    }
+
+    .modal-header {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+
+    .modal-body {
+        margin-top: 10px;
+    }
+
+    .btn-close,
+    .btn-try-again,
+    .btn-go-back {
+        margin-top: 20px;
+    }
+
+    /* Timer Styling */
+    #timer {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #d9534f;
+        z-index: 10;
+    }
+
+    /* Timer at the top left */
+#timer {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+/* Camera Circle */
+.camera-icon {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 3px solid #fff;
+}
+
+/* Modal Styles */
+.modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black */
+}
+
+body.modal-open {
+    overflow: hidden;
+}
+
+body.modal-open .quiz-container {
+    filter: blur(5px); /* Blur the quiz content when modal is active */
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="quiz-container">
+    <!-- Live Camera Feed positioned top-right corner -->
+    <div id="video-container">
+        <video id="videoElement" autoplay playsinline></video>
+    </div>
+
+    <h2 class="quiz-title">{{ quiz.title }}</h2>
+    <form method="POST" action="{% url 'submit_quiz' quiz.id %}">
+        {% csrf_token %}
+
+        {% for question in questions %}
+        <div class="question">
+            <p><strong>Q{{ forloop.counter }}: {{ question.question }}</strong></p>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="question_{{ question.id }}" value="1"
+                    id="question_{{ question.id }}_1">
+                <label class="form-check-label" for="question_{{ question.id }}_1">{{ question.option_1 }}</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="question_{{ question.id }}" value="2"
+                    id="question_{{ question.id }}_2">
+                <label class="form-check-label" for="question_{{ question.id }}_2">{{ question.option_2 }}</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="question_{{ question.id }}" value="3"
+                    id="question_{{ question.id }}_3">
+                <label class="form-check-label" for="question_{{ question.id }}_3">{{ question.option_3 }}</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="question_{{ question.id }}" value="4"
+                    id="question_{{ question.id }}_4">
+                <label class="form-check-label" for="question_{{ question.id }}_4">{{ question.option_4 }}</label>
+            </div>
+        </div>
+        {% endfor %}
+
+        <div class="button-container">
+            <button type="submit" class="btn btn-primary">Submit Quiz</button>
+        </div>
+    </form>
+
+    <!-- Timer display -->
+    <div id="timer">Time Remaining: <span id="time">00:00</span></div>
+</div>
+
+<!-- Modal for warning about tab change -->
+<div id="tabChangeModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">Warning!</div>
+        <div class="modal-body">
+            <p>You are not allowed to change the tab during the quiz. Please complete the quiz before navigating away.
+            </p>
+            <button class="btn btn-primary btn-try-again" onclick="retryQuiz()">Try Again</button>
+            <button class="btn btn-danger btn-close" style="display: none;">Close</button>
+            <!-- Hide the Close button -->
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Time's Up -->
+<div id="timeUpModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">Time's Up!</div>
+        <div class="modal-body">
+            <p>Your time is up. The quiz has been automatically submitted.</p>
+            <button class="btn btn-danger btn-go-back" onclick="goBackToVideo()">Go Back to Video</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Get access to the video element and user's webcam
+    const videoElement = document.getElementById("videoElement");
+
+    // Request webcam access
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(function (stream) {
+            videoElement.srcObject = stream;
+        })
+        .catch(function (error) {
+            console.error("Error accessing webcam: ", error);
+        });
+
+    // Modal handling for tab change
+    const tabChangeModal = document.getElementById('tabChangeModal');
+    const timeUpModal = document.getElementById('timeUpModal');
+
+    // Event listener for tab/window blur
+    window.addEventListener('blur', function () {
+        tabChangeModal.style.display = 'block';  // Show the modal when the user switches tab/window
+    });
+
+    // Function to retry the quiz (reload the page)
+    function retryQuiz() {
+        window.location.reload();
+    }
+
+    // Timer Setup
+    let totalTime = {{ questions.count }} * 30; // Total time = 20 seconds per question * number of questions
+    let timerInterval;
+
+    function startTimer() {
+        let timeRemaining = totalTime;
+        const timeDisplay = document.getElementById("time");
+
+        // Update the timer every second
+        timerInterval = setInterval(function () {
+            let minutes = Math.floor(timeRemaining / 60);
+            let seconds = timeRemaining % 60;
+
+            if (seconds < 10) seconds = "0" + seconds; // Format seconds to 2 digits
+
+            timeDisplay.textContent = minutes + ":" + seconds;
+
+            if (timeRemaining === 0) {
+                clearInterval(timerInterval);
+                showTimeUpModal();  // Show the modal when time's up
+            }
+
+            timeRemaining--;
+        }, 1000);
+    }
+
+    // Show time's up modal
+    function showTimeUpModal() {
+        timeUpModal.style.display = 'block'; // Show time-up modal
+    }
+
+    // Function to go back to video page
+    function goBackToVideo() {
+        window.location.href = "{% url 'watch_course' video.course.slug %}"; // Redirect to video page (adjust URL name accordingly)
+    }
+
+    // Start the timer when the page loads
+    window.onload = startTimer;
+    
+</script>
+{% endblock %}

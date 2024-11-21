@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block title %}Quiz{% endblock title %}
+{% load static %}
+
+
+{% block content %}
+
+<!-- quiz_result.html -->
+<div class="container">
+    <h2>Quiz Results</h2>
+    <p><strong>Score:</strong> {{ score }} / {{ total }}</p>
+    <p><strong>Percentage:</strong> {{ percentage }}%</p>
+</div>
+
+
+{% endblock content %}

@@ -55,6 +55,13 @@
                 </form>
             </div>
 
+            <style>
+                .faded-video {
+                    opacity: 0.5;
+                    pointer-events: none;
+                }
+            </style>
+
             <div id="accordionCurriculum" class="sidebar-collapse-scroll">
                 {% for lesson in course.lesson_set.all %}
                 <div class="overflow-hidden">
@@ -65,20 +72,15 @@
                                 type="button" data-bs-toggle="collapse" data-bs-target="#id-{{lesson.id}}"
                                 aria-expanded="true" aria-controls="id-{{lesson.id}}">
                                 <span class="me-4 text-dark d-flex">
-                                    <!-- Icon -->
-                                    <svg width="15" height="2" viewBox="0 0 15 2" fill="none"
-                                        xmlns="http://www.w3.org/2000/svg">
+                                    <!-- Icons for open and close -->
+                                    <svg width="15" height="2">
                                         <rect width="15" height="2" fill="currentColor" />
                                     </svg>
-
-                                    <svg width="15" height="16" viewBox="0 0 15 16" fill="none"
-                                        xmlns="http://www.w3.org/2000/svg">
+                                    <svg width="15" height="16">
                                         <path d="M0 7H15V9H0V7Z" fill="currentColor" />
-                                        <path d="M6 16L6 8.74228e-08L8 0L8 16H6Z" fill="currentColor" />
+                                        <path d="M6 16L6 0L8 0L8 16H6Z" fill="currentColor" />
                                     </svg>
-
                                 </span>
-
                                 {{lesson.name}}
                             </button>
                         </h5>
@@ -87,29 +89,23 @@
                     <div id="id-{{lesson.id}}" class="collapse show" aria-labelledby="curriculumheadingOne"
                         data-parent="#accordionCurriculum">
                         {% for video in lesson.video_set.all %}
-                        <div class="border-top px-5 py-4 min-height-70 d-md-flex align-items-center">
+                        <div class="border-top px-5 py-4 min-height-70 d-md-flex align-items-center {% if quiz_video_id and video.id > quiz_video_id %}faded-video{% endif %}"
+                            data-bs-toggle="tooltip"
+                            title="{% if quiz_video_id and video.id > quiz_video_id %}Complete the quiz for the previous video first{% endif %}">
                             <div class="d-flex align-items-center me-auto mb-4 mb-md-0">
                                 <div class="text-secondary d-flex">
                                     <i class="fa-brands fa-youtube" style="color: red;"></i>
                                 </div>
-                                <a href="?lecture={{video.id}}">
-                                    <div class="ms-4">
-                                        {{video.title}}
-                                    </div>
-                                </a>
+                                {% if not quiz_video_id or video.id <= quiz_video_id %} <a href="?lecture={{video.id}}">
+                                    <div class="ms-4">{{ video.title }}</div>
+                                    </a>
+                                    {% else %}
+                                    <span class="ms-4 text-muted">{{ video.title }}</span>
+                                    {% endif %}
                             </div>
 
                             <div class="d-flex align-items-center overflow-auto overflow-md-visible flex-shrink-all">
-                                <div class="badge btn-blue-soft me-5 font-size-sm fw-normal py-2">{{video.time_duration}} min</div>
-                                <a href="#" class="text-secondary d-flex">
-                                    <!-- Icon -->
-                                    <svg width="14" height="16" viewBox="0 0 14 16" xmlns="http://www.w3.org/2000/svg">
-                                        <path
-                                            d="M12.8704 6.15374L3.42038 0.328572C2.73669 -0.0923355 1.9101 -0.109836 1.20919 0.281759C0.508282 0.673291 0.0898438 1.38645 0.0898438 2.18929V13.7866C0.0898438 15.0005 1.06797 15.9934 2.27016 16C2.27344 16 2.27672 16 2.27994 16C2.65563 16 3.04713 15.8822 3.41279 15.6591C3.70694 15.4796 3.79991 15.0957 3.62044 14.8016C3.44098 14.5074 3.05697 14.4144 2.76291 14.5939C2.59188 14.6982 2.42485 14.7522 2.27688 14.7522C1.82328 14.7497 1.33763 14.3611 1.33763 13.7866V2.18933C1.33763 1.84492 1.51713 1.53907 1.81775 1.3711C2.11841 1.20314 2.47294 1.21064 2.76585 1.39098L12.2159 7.21615C12.4999 7.39102 12.6625 7.68262 12.6618 8.01618C12.6611 8.34971 12.4974 8.64065 12.2118 8.81493L5.37935 12.9983C5.08548 13.1783 4.9931 13.5623 5.17304 13.8562C5.35295 14.1501 5.73704 14.2424 6.03092 14.0625L12.8625 9.87962C13.5166 9.48059 13.9081 8.78496 13.9096 8.01868C13.9112 7.25249 13.5226 6.55524 12.8704 6.15374Z"
-                                            fill="currentColor" />
-                                    </svg>
-
-                                </a>
+                                <div class="badge btn-blue-soft me-5 font-size-sm fw-normal py-2">{{ video.time_duration}} min</div>
                             </div>
                         </div>
                         {% endfor %}
@@ -117,34 +113,34 @@
                 </div>
                 {% endfor %}
             </div>
+
         </div>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+
+    </script>
 
     <div class="container">
         <div class="row mb-11">
             <div class="col-lg-11 col-wd-12 ms-lg-auto pt-11 pt-lg-8">
                 <h2 class="font-size-xl mb-6">
-                   {{video.title}} 
+                    {{video.title}}
                 </h2>
 
-                <a href="https://www.youtube.com/watch?v={{video.youtube_id}}" class="d-block sk-thumbnail rounded mb-8"
-                    data-fancybox>
-                    <div
-                        class="h-90p w-90p rounded-circle bg-white size-30-all d-inline-flex align-items-center justify-content-center position-absolute center z-index-1">
-                        <!-- Icon -->
-                        <svg width="14" height="16" viewBox="0 0 14 16" xmlns="http://www.w3.org/2000/svg">
-                            <path
-                                d="M12.8704 6.15374L3.42038 0.328572C2.73669 -0.0923355 1.9101 -0.109836 1.20919 0.281759C0.508282 0.673291 0.0898438 1.38645 0.0898438 2.18929V13.7866C0.0898438 15.0005 1.06797 15.9934 2.27016 16C2.27344 16 2.27672 16 2.27994 16C2.65563 16 3.04713 15.8822 3.41279 15.6591C3.70694 15.4796 3.79991 15.0957 3.62044 14.8016C3.44098 14.5074 3.05697 14.4144 2.76291 14.5939C2.59188 14.6982 2.42485 14.7522 2.27688 14.7522C1.82328 14.7497 1.33763 14.3611 1.33763 13.7866V2.18933C1.33763 1.84492 1.51713 1.53907 1.81775 1.3711C2.11841 1.20314 2.47294 1.21064 2.76585 1.39098L12.2159 7.21615C12.4999 7.39102 12.6625 7.68262 12.6618 8.01618C12.6611 8.34971 12.4974 8.64065 12.2118 8.81493L5.37935 12.9983C5.08548 13.1783 4.9931 13.5623 5.17304 13.8562C5.35295 14.1501 5.73704 14.2424 6.03092 14.0625L12.8625 9.87962C13.5166 9.48059 13.9081 8.78496 13.9096 8.01868C13.9112 7.25249 13.5226 6.55524 12.8704 6.15374Z"
-                                fill="currentColor" />
-                        </svg>
+                <video controls id="video-{{ video.id }}" class="rounded shadow-light-lg">
+                    <source src="/{{ video.video_file }}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
 
-                    </div>
-                    <img class="rounded shadow-light-lg" src="/{{video.thumbnail}}"
-                        alt="...">
-                </a>
+
 
                 <h3 class="">Course Description</h3>
-
                 <p class="mb-6 line-height-md">{{course.description}}</p>
                 <p class="collapse mb-6 line-height-md" id="readcollapseExample">{{course.description}}.</p>
                 <a class="text-teal read-more h6 d-inline-block mb-8" data-bs-toggle="collapse"
@@ -178,109 +174,145 @@
                     </a>
                 </div>
 
-                <!-- <h3 class="mb-6">Comment</h3>
-                <ul class="list-unstyled pt-2">
-                    <li class="media d-flex">
-                        <div class="avatar avatar-xxl me-3 me-md-6 flex-shrink-0">
-                            <img src="{% static 'assets/img/avatars/avatar-1.jpg' %}" alt="..."
-                                class="avatar-img rounded-circle">
-                        </div>
-                        <div class="media-body flex-grow-1">
-                            <div class="d-md-flex align-items-center mb-5">
-                                <div class="me-auto mb-4 mb-md-0">
-                                    <h5 class="mb-0">Oscar Cafeo</h5>
-                                    <p class="font-size-sm font-italic">Beautiful courses</p>
-                                </div>
-                                <div class="star-rating">
-                                    <div class="rating" style="width:100%;"></div>
-                                </div>
+                <div class="container mt-4 d-flex justify-content-center">
+                    <div class="quiz-section" style="max-width: 50%; width: 100%;">
+                        {% if quiz %}
+                        <div class="card border-primary shadow-sm">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0 text-white">Quiz Status</h5>
                             </div>
-                            <p class="mb-6 line-height-md">This course was well organized and covered a lot more details
-                                than any other Figma courses. I really enjoy it. One suggestion is that it can be much
-                                better if we could complete the prototype together. Since we created 24 frames, I really
-                                want to test it on Figma mirror to see all the connections. Could you please let me take
-                                a look at the complete prototype?</p>
-                        </div>
-                    </li>
-                    <li class="media d-flex">
-                        <div class="avatar avatar-xxl me-3 me-md-6 flex-shrink-0">
-                            <img src="{% static 'assets/img/avatars/avatar-2.jpg' %}" alt="..."
-                                class="avatar-img rounded-circle">
-                        </div>
-                        <div class="media-body flex-grow-1">
-                            <div class="d-md-flex align-items-center mb-5">
-                                <div class="me-auto mb-4 mb-md-0">
-                                    <h5 class="mb-0">Alex Morgan</h5>
-                                    <p class="font-size-sm font-italic">Beautiful courses</p>
-                                </div>
-                                <div class="star-rating">
-                                    <div class="rating" style="width:100%;"></div>
-                                </div>
+                            <div class="card-body">
+                                {% if user_quiz_score %}
+                                <p class="card-text font-weight-bold">
+                                    Your Score: {{ user_quiz_score.score }} / {{ user_quiz_score.total }}
+                                </p>
+                                <p class="card-text font-weight-bold">
+                                    Percentage: {{ user_quiz_score.percentage }}%
+                                </p>
+                                <button type="button" class="btn btn-outline-primary btn-lg mt-2" onclick="startQuiz()">
+                                    <i class="bi bi-arrow-repeat"></i> Reattempt Quiz
+                                </button>
+                                {% else %}
+                                <p class="card-text text-muted">Ready to test your knowledge? Click below to start the
+                                    quiz.</p>
+                                <button type="button" class="btn btn-primary btn-lg mt-2" onclick="startQuiz()">
+                                    <i class="bi bi-play-circle"></i> Take Quiz
+                                </button>
+                                {% endif %}
                             </div>
-                            <p class="mb-6 line-height-md">This course was well organized and covered a lot more details
-                                than any other Figma courses. I really enjoy it. One suggestion is that it can be much
-                                better if we could complete the prototype together. Since we created 24 frames, I really
-                                want to test it on Figma mirror to see all the connections. Could you please let me take
-                                a look at the complete prototype?</p>
                         </div>
-                    </li>
-                </ul>
-
-                <div class="border shadow rounded p-6 p-md-9">
-                    <h3 class="mb-2">Add Reviews & Rate</h3>
-                    <div class="">What is it like to Course?</div>
-                    <form>
-                        <div class="clearfix">
-                            <fieldset class="slect-rating mb-3">
-                                <input type="radio" id="star5" name="rating" value="5" />
-                                <label class="full" for="star5" title="Awesome - 5 stars"></label>
-
-                                <input type="radio" id="star4half" name="rating" value="4 and a half" />
-                                <label class="half" for="star4half" title="Pretty good - 4.5 stars"></label>
-
-                                <input type="radio" id="star4" name="rating" value="4" />
-                                <label class="full" for="star4" title="Pretty good - 4 stars"></label>
-
-                                <input type="radio" id="star3half" name="rating" value="3 and a half" />
-                                <label class="half" for="star3half" title="Meh - 3.5 stars"></label>
-
-                                <input type="radio" id="star3" name="rating" value="3" />
-                                <label class="full" for="star3" title="Meh - 3 stars"></label>
-
-                                <input type="radio" id="star2half" name="rating" value="2 and a half" />
-                                <label class="half" for="star2half" title="Kinda bad - 2.5 stars"></label>
-
-                                <input type="radio" id="star2" name="rating" value="2" />
-                                <label class="full" for="star2" title="Kinda bad - 2 stars"></label>
-
-                                <input type="radio" id="star1half" name="rating" value="1 and a half" />
-                                <label class="half" for="star1half" title="Meh - 1.5 stars"></label>
-
-                                <input type="radio" id="star1" name="rating" value="1" />
-                                <label class="full" for="star1" title="Sucks big time - 1 star"></label>
-
-                                <input type="radio" id="starhalf" name="rating" value="half" />
-                                <label class="half" for="starhalf" title="Sucks big time - 0.5 stars"></label>
-                            </fieldset>
-                        </div>
-
-                        <div class="form-group mb-6">
-                            <label for="exampleInputTitle1">Review Title</label>
-                            <input type="text" class="form-control placeholder-1" id="exampleInputTitle1"
-                                placeholder="Courses">
-                        </div>
-
-                        <div class="form-group mb-6">
-                            <label for="exampleFormControlTextarea1">Review Content</label>
-                            <textarea class="form-control placeholder-1" id="exampleFormControlTextarea1" rows="6"
-                                placeholder="Content"></textarea>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary btn-block mw-md-300p">SUBMIT REVIEW</button>
-                    </form>
-                </div> -->
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+
+<!-- first check video watch Modals -->
+<div class="modal fade" id="quizModalCheck" tabindex="-1" aria-labelledby="quizModalCheckLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="quizModalCheckLabel">Quiz Time</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                You have already watched this video. Would you like to attempt the quiz now?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="startQuiz()">Attempt Quiz</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- after video watch Modal -->
+<div class="modal fade" id="quizModal" tabindex="-1" aria-labelledby="quizModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="quizModalLabel">Quiz Time!</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Congratulations! You've completed the video. Ready to take the quiz?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="startQuiz()">Start Quiz</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('video-{{ video.id }}').addEventListener('ended', function () {
+        // Send AJAX request when the video ends
+        fetch('/update_video_watch_status/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}',  // Ensure CSRF token is rendered properly
+            },
+            body: JSON.stringify({
+                video_id: '{{ video.id }}',
+                user_id: '{{ user.id }}'  // Optional: Pass user ID if needed for tracking
+            })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not OK');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Video watch status updated:', data);
+                var quizModal = new bootstrap.Modal(document.getElementById('quizModal'), {
+                    backdrop: false // No backdrop // Disables closing the modal with the keyboard
+                });
+                quizModal.show();
+            })
+            .catch(error => console.error('Error:', error));
+    });
+    function startQuiz() {
+        // Redirect to the quiz page
+        window.location.href = '/quiz/{{ video.id }}/';
+    }
+    window.addEventListener('load', function () {
+        // Get video ID and user ID dynamically (you can pass this via context in your template)
+        const videoId = '{{ video.id }}'; // Make sure video ID is passed correctly in your template
+        const userId = '{{ user.id }}'; // Make sure user ID is passed correctly in your template
+
+        // Send AJAX request to check if the video has been watched and if it has a quiz
+        fetch('/check_video_watch_status/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}',  // Django CSRF token
+            },
+            body: JSON.stringify({
+                video_id: videoId,
+                user_id: userId,
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'watched') {
+                    // If video is watched, show the modal asking to attempt the quiz
+                    $('#quizModalCheck').modal('show');
+                } else if (data.status === 'no_quiz') {
+                    // If no quiz is associated with the video, do nothing or show a message if necessary
+                    console.log(data.message);  // Optionally show a message or log it
+                } else if (data.status === 'quiz_attempted') {
+                    // If the user has already attempted the quiz, show a message or take other actions
+                    alert('You have already attempted the quiz.');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    });
+
+
+</script>
 {% endblock content %}
